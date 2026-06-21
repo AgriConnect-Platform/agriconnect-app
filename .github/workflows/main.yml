@@ -1,0 +1,144 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  # ── Detect which paths changed ────────────────────────────────────────────
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+
+  # ── Build all 5 services in PARALLEL ─────────────────────────────────────
+  ci-auth:
+    uses: ./.github/workflows/ci-auth.yml
+    secrets: inherit
+
+  ci-marketplace:
+    uses: ./.github/workflows/ci-marketplace.yml
+    secrets: inherit
+
+  ci-order:
+    uses: ./.github/workflows/ci-order.yml
+    secrets: inherit
+
+  ci-media:
+    uses: ./.github/workflows/ci-media.yml
+    secrets: inherit
+
+  ci-notification:
+    uses: ./.github/workflows/ci-notification.yml
+    secrets: inherit
+
+  # ── SAST — SonarCloud (must pass before Snyk runs) ───────────────────────
+  sast:
+    name: SAST - SonarCloud
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # ── Notify on SonarCloud failure ──────────────────────────────────────────
+  notify-sast:
+    name: Notify - SonarCloud Failed
+    needs: sast
+    if: failure() && needs.sast.result == 'failure'
+    uses: ./.github/workflows/notify-failure.yml
+    secrets: inherit
+    with:
+      scan_name: "SonarCloud SAST"
+
+  # ── Snyk — runs after SonarCloud passes, always completes ────────────────
+  snyk:
+    name: Snyk - Dependency Scan
+    needs: sast
+    if: needs.sast.result == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      failed: ${{ steps.snyk-scan.outcome == 'failure' && 'true' || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      - name: Install dependencies
+        run: |
+          for dir in shared services/auth-service services/marketplace-service services/order-service services/media-service services/notification-service; do
+            echo "Installing deps in $dir..."
+            (cd $dir && npm install --omit=dev)
+          done
+
+      - name: Run Snyk scan
+        id: snyk-scan
+        run: snyk test --all-projects --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
+  # ── Notify on Snyk failure ────────────────────────────────────────────────
+  notify-snyk:
+    name: Notify - Snyk Vulnerabilities Found
+    needs: snyk
+    if: needs.snyk.outputs.failed == 'true'
+    uses: ./.github/workflows/notify-failure.yml
+    secrets: inherit
+    with:
+      scan_name: "Snyk Dependency Scan"
+
+  # ── Update image tags in agriconnect-helm repo → triggers ArgoCD sync ────
+  update-helm-values:
+    name: Update image tags in Helm repo
+    needs: [ci-auth, ci-marketplace, ci-order, ci-media, ci-notification, sast, snyk]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout helm repo
+        uses: actions/checkout@v4
+        with:
+          repository: agriconnect-platform/agriconnect-helm
+          token: ${{ secrets.GH_PAT }}
+          path: helm-repo
+
+      - name: Update image tags
+        run: |
+          SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          sed -i "s/^\( *tag:\) .*/\1 ${SHA}/" helm-repo/helm/agriconnect/values.yaml
+
+      - name: Commit and push
+        run: |
+          SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          cd helm-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add helm/agriconnect/values.yaml
+          git diff --staged --quiet || git commit -m "ci: update image tags to ${SHA} [skip ci]"
+          git push
+
+  # ── Deploy frontend — only when frontend files changed ────────────────────
+  cd-frontend:
+    needs: [changes]
+    if: needs.changes.outputs.frontend == 'true'
+    uses: ./.github/workflows/cd-frontend.yml
+    secrets: inherit
