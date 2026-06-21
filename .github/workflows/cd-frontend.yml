@@ -2,6 +2,7 @@ name: CD - Frontend
 
 on:
   workflow_call:
+  workflow_dispatch:
 
 env:
   AWS_REGION: ap-south-1
