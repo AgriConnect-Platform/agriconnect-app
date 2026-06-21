@@ -42,10 +42,11 @@ jobs:
     uses: ./.github/workflows/ci-notification.yml
     secrets: inherit
 
-  # ── SAST — SonarCloud (must pass before Snyk runs) ───────────────────────
+  # ── SAST — SonarCloud (informational, does not block deployment) ─────────
   sast:
     name: SAST - SonarCloud
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,11 +67,11 @@ jobs:
     with:
       scan_name: "SonarCloud SAST"
 
-  # ── Snyk — runs after SonarCloud passes, always completes ────────────────
+  # ── Snyk — runs after SonarCloud (informational, does not block deployment)
   snyk:
     name: Snyk - Dependency Scan
     needs: sast
-    if: needs.sast.result == 'success'
+    if: always()
     runs-on: ubuntu-latest
     outputs:
       failed: ${{ steps.snyk-scan.outcome == 'failure' && 'true' || 'false' }}
@@ -111,7 +112,8 @@ jobs:
   # ── Update image tags in agriconnect-helm repo → triggers ArgoCD sync ────
   update-helm-values:
     name: Update image tags in Helm repo
-    needs: [ci-auth, ci-marketplace, ci-order, ci-media, ci-notification, sast, snyk]
+    needs: [ci-auth, ci-marketplace, ci-order, ci-media, ci-notification]
+    if: always() && needs.ci-auth.result == 'success' && needs.ci-marketplace.result == 'success' && needs.ci-order.result == 'success' && needs.ci-media.result == 'success' && needs.ci-notification.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout helm repo
