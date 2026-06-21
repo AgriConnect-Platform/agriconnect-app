@@ -7,6 +7,7 @@ router.get('/', authenticateToken, notificationController.getNotifications);
 router.get('/list', authenticateToken, notificationController.getNotifications);
 router.get('/unread-count', authenticateToken, notificationController.getUnreadCount);
 router.post('/send', authenticateToken, notificationController.sendNotification);
+router.post('/weather-alert', notificationController.broadcastWeatherAlert);
 router.put('/read-all', authenticateToken, notificationController.markAllRead);
 router.put('/:id/read', authenticateToken, notificationController.markAsRead);
 

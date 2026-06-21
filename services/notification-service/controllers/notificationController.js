@@ -1,5 +1,5 @@
 const { getDatabaseConnection } = require('agriconnect-shared/db');
-const { sendEmail } = require('agriconnect-shared/utils/email');
+const { sendEmail, weatherAlertEmail } = require('agriconnect-shared/utils/email');
 
 exports.getNotifications = async (req, res) => {
   try {
@@ -95,6 +95,50 @@ exports.markAllRead = async (req, res) => {
   } catch (error) {
     console.error('Error marking all notifications as read:', error);
     res.status(500).json({ error: 'Failed to update notifications' });
+  }
+};
+
+exports.broadcastWeatherAlert = async (req, res) => {
+  try {
+    const { message, alert_type } = req.body;
+    if (!message) return res.status(400).json({ error: 'message is required' });
+
+    const sequelize = await getDatabaseConnection();
+    const { User, Farmer, Notification } = sequelize.models;
+
+    const farmers = await Farmer.findAll({
+      include: [{ model: User, attributes: ['id', 'email', 'first_name', 'last_name'] }]
+    });
+
+    let sent = 0;
+    for (const farmer of farmers) {
+      const user = farmer.User;
+      if (!user) continue;
+
+      await Notification.create({
+        user_id: user.id,
+        title: '🌦️ Weather Alert',
+        message
+      }).catch(() => {});
+
+      if (user.email) {
+        sendEmail({
+          to: user.email,
+          subject: '🌦️ AgriConnect Weather Alert',
+          html: weatherAlertEmail({
+            farmerName: user.first_name || 'Farmer',
+            message,
+            alertType: alert_type || 'default'
+          })
+        });
+        sent++;
+      }
+    }
+
+    res.json({ success: true, farmers_notified: farmers.length, emails_sent: sent });
+  } catch (error) {
+    console.error('Weather broadcast error:', error);
+    res.status(500).json({ error: 'Failed to broadcast weather alert' });
   }
 };
 

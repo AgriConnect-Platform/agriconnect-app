@@ -90,4 +90,29 @@ function orderNotificationEmail({ farmerName, productName, quantity, unit, total
   `;
 }
 
-module.exports = { sendEmail, bidNotificationEmail, orderNotificationEmail };
+function weatherAlertEmail({ farmerName, message, alertType }) {
+  const icons = { rain: '🌧️', heat: '☀️', frost: '❄️', storm: '⛈️', default: '🌦️' };
+  const icon = icons[alertType] || icons.default;
+  return `
+    <div style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:0 auto;background:#f9f9f9;border-radius:12px;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#1B5E20,#2E7D32);padding:28px 32px;">
+        <h1 style="color:white;margin:0;font-size:22px;">🌾 AgriConnect</h1>
+        <p style="color:rgba(255,255,255,0.8);margin:6px 0 0;">Weather Advisory</p>
+      </div>
+      <div style="padding:32px;">
+        <h2 style="color:#1B5E20;margin-top:0;">${icon} Weather Alert for Your Farm</h2>
+        <p style="color:#555;">Hi <strong>${farmerName}</strong>,</p>
+        <div style="background:#FFF8E1;border-left:4px solid #F9A825;border-radius:8px;padding:16px;margin:20px 0;">
+          <p style="margin:0;color:#555;line-height:1.6;">${message}</p>
+        </div>
+        <p style="color:#555;">Please take necessary precautions to protect your crops and farm equipment.</p>
+        <a href="#" style="display:inline-block;background:linear-gradient(135deg,#2E7D32,#388E3C);color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:8px;">
+          View Dashboard →
+        </a>
+        <p style="color:#999;font-size:12px;margin-top:24px;">AgriConnect · India's Farm-to-Market Platform</p>
+      </div>
+    </div>
+  `;
+}
+
+module.exports = { sendEmail, bidNotificationEmail, orderNotificationEmail, weatherAlertEmail };

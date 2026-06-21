@@ -44,7 +44,7 @@ exports.createOrder = async (req, res) => {
       return newOrder;
     });
 
-    // ── Notify farmer via SNS→SQS pipeline (fallback: direct DB + email) ──────
+    // ── Notify farmer: direct DB + email (SNS published for audit trail only) ──
     const farmerUserId = listing.Farmer?.user_id;
     const farmerUser = listing.Farmer?.User;
     if (farmerUserId) {
@@ -52,40 +52,37 @@ exports.createOrder = async (req, res) => {
         ? buyer.User.first_name + ' ' + buyer.User.last_name
         : buyer.company_name;
 
-      const published = await publishEvent({
+      // Fire-and-forget to SNS for audit/analytics — never gate email on this
+      publishEvent({
         type: 'NEW_ORDER',
         order_id: order.id,
         farmer_user_id: farmerUserId,
-        farmer_email: farmerUser?.email,
-        farmer_name: farmerUser ? `${farmerUser.first_name} ${farmerUser.last_name}` : 'Farmer',
         buyer_name: buyerName,
         product_name: listing.product_name,
         quantity: parseFloat(quantity),
-        unit: listing.unit,
         total_amount
-      });
+      }).catch(() => {});
 
-      if (!published) {
-        await Notification.create({
-          user_id: farmerUserId,
-          title: 'New Order Received! 🎉',
-          message: `${buyer.company_name} ordered ${parseFloat(quantity)} ${listing.unit} of ${listing.product_name} for ₹${total_amount.toLocaleString('en-IN')}. Please prepare for dispatch.`
-        }).catch(err => console.error('Order notification failed:', err.message));
+      // Always notify directly
+      await Notification.create({
+        user_id: farmerUserId,
+        title: 'New Order Received! 🎉',
+        message: `${buyer.company_name} ordered ${parseFloat(quantity)} ${listing.unit} of ${listing.product_name} for ₹${total_amount.toLocaleString('en-IN')}. Please prepare for dispatch.`
+      }).catch(err => console.error('Order notification failed:', err.message));
 
-        if (farmerUser?.email) {
-          sendEmail({
-            to: farmerUser.email,
-            subject: `New Order: ${listing.product_name} from ${buyer.company_name}`,
-            html: orderNotificationEmail({
-              farmerName: `${farmerUser.first_name} ${farmerUser.last_name}`,
-              productName: listing.product_name,
-              quantity: parseFloat(quantity),
-              unit: listing.unit,
-              totalAmount: total_amount,
-              buyerCompany: buyer.company_name
-            })
-          });
-        }
+      if (farmerUser?.email) {
+        sendEmail({
+          to: farmerUser.email,
+          subject: `New Order: ${listing.product_name} from ${buyer.company_name}`,
+          html: orderNotificationEmail({
+            farmerName: `${farmerUser.first_name} ${farmerUser.last_name}`,
+            productName: listing.product_name,
+            quantity: parseFloat(quantity),
+            unit: listing.unit,
+            totalAmount: total_amount,
+            buyerCompany: buyer.company_name
+          })
+        });
       }
     }
 
