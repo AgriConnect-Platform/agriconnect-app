@@ -47,13 +47,9 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ env.SERVICE }}
 
       - name: Scan with Trivy
-        uses: aquasecurity/trivy-action@0.31.0
-        with:
-          image-ref: ${{ steps.tag.outputs.full_image }}
-          format: table
-          exit-code: 1
-          ignore-unfixed: true
-          severity: CRITICAL
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          trivy image --severity CRITICAL --exit-code 1 --ignore-unfixed ${{ steps.tag.outputs.full_image }}
 
       - name: Push to ECR
         uses: docker/build-push-action@v5
