@@ -26,14 +26,13 @@ app.use('/api/orders', orderRoutes);
 const PORT = process.env.PORT || 3003;
 
 async function startServer() {
+  const server = app.listen(PORT, () => console.log(`Order Service running on port ${PORT}`));
   try {
     await getDatabaseConnection();
     isReady = true;
-    app.listen(PORT, () => {
-      console.log(`Order Service running on port ${PORT}`);
-    });
   } catch (error) {
     console.error('Failed to start Order Service:', error);
+    server.close();
     process.exit(1);
   }
 }

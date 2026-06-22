@@ -26,14 +26,13 @@ app.use('/api/marketplace', marketplaceRoutes);
 const PORT = process.env.PORT || 3002;
 
 async function startServer() {
+  const server = app.listen(PORT, () => console.log(`Marketplace Service running on port ${PORT}`));
   try {
     await getDatabaseConnection();
     isReady = true;
-    app.listen(PORT, () => {
-      console.log(`Marketplace Service running on port ${PORT}`);
-    });
   } catch (error) {
     console.error('Failed to start Marketplace Service:', error);
+    server.close();
     process.exit(1);
   }
 }

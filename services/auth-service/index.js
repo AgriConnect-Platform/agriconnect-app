@@ -26,12 +26,13 @@ app.use('/api/auth', authRoutes);
 const PORT = process.env.PORT || 3001;
 
 async function startServer() {
+  const server = app.listen(PORT, () => console.log(`Auth Service running on port ${PORT}`));
   try {
     await getDatabaseConnection();
     isReady = true;
-    app.listen(PORT, () => console.log(`Auth Service running on port ${PORT}`));
   } catch (error) {
     console.error('Failed to start Auth Service:', error);
+    server.close();
     process.exit(1);
   }
 }

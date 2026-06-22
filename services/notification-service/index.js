@@ -27,15 +27,14 @@ app.use('/api/notifications', notificationRoutes);
 const PORT = process.env.PORT || 3005;
 
 async function startServer() {
+  const server = app.listen(PORT, () => console.log(`Notification Service running on port ${PORT}`));
   try {
     await getDatabaseConnection();
     isReady = true;
     startWorker();
-    app.listen(PORT, () => {
-      console.log(`Notification Service running on port ${PORT}`);
-    });
   } catch (error) {
     console.error('Failed to start Notification Service:', error);
+    server.close();
     process.exit(1);
   }
 }
