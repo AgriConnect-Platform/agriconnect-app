@@ -63,9 +63,11 @@ jobs:
           args: >-
             -Dsonar.qualitygate.wait=false
 
-  # ── Snyk — runs in parallel with SonarCloud ───────────────────────────────
+  # ── Snyk — runs after SonarCloud ─────────────────────────────────────────
   snyk:
     name: Snyk - Dependency Scan
+    needs: sast
+    if: always()
     runs-on: ubuntu-latest
     outputs:
       result: ${{ steps.snyk-scan.outcome }}
