@@ -9,7 +9,7 @@ app.use(express.json());
 
 let isReady = false;
 
-app.get('/healthz', (req, res) => res.status(200).json({ status: 'ok', service: 'auth-service' }));
+app.get('/healthz', (req, res) => res.status(200).json({ status: 'ok', service: 'auth-service', version: '2.0.0' }));
 app.get('/ready', async (req, res) => {
   if (!isReady) return res.status(503).json({ status: 'not ready' });
   try {
