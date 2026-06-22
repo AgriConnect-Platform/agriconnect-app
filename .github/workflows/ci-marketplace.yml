@@ -55,11 +55,7 @@ jobs:
         run: |
           docker run -d \
             -e PORT=3001 \
-            -e DB_HOST=10.255.255.1 \
-            -e DB_PORT=3306 \
-            -e DB_USER=dummy \
-            -e DB_PASSWORD=dummy \
-            -e DB_NAME=dummy \
+            -e SKIP_DB=true \
             -p 3001:3001 \
             --name smoke-${{ env.SERVICE }} \
             ${{ steps.tag.outputs.full_image }}

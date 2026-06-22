@@ -28,6 +28,7 @@ const PORT = process.env.PORT || 3005;
 
 async function startServer() {
   const server = app.listen(PORT, () => console.log(`Notification Service running on port ${PORT}`));
+  if (process.env.SKIP_DB === 'true') { isReady = true; return; }
   try {
     await getDatabaseConnection();
     isReady = true;
