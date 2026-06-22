@@ -165,6 +165,7 @@ const FarmerDashboard = ({ user }) => {
         const fd = new FormData();
         fd.append('image', imageFile);
         const imgRes = await axios.post('/api/media/upload/produce', fd, { headers });
+        if (!imgRes.data.imageUrl) throw new Error('Image upload failed — no URL returned');
         image_url = imgRes.data.imageUrl;
       }
       const payload = { ...form, image_url, quantity: parseFloat(form.quantity), price: parseFloat(form.price) };

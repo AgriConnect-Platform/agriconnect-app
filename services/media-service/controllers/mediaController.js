@@ -57,26 +57,6 @@ exports.uploadProduceImage = async (req, res) => {
   }
 };
 
-exports.uploadDeliveryProof = async (req, res) => {
-  try {
-    await initS3();
-    if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
-
-    const fileExt = req.file.originalname.split('.').pop().toLowerCase();
-    const fileName = `proof_${crypto.randomBytes(16).toString('hex')}.${fileExt}`;
-    await s3Client.send(new PutObjectCommand({
-      Bucket: buckets.delivery_bucket,
-      Key: fileName,
-      Body: req.file.buffer,
-      ContentType: req.file.mimetype
-    }));
-
-    res.json({ message: 'Delivery proof uploaded', fileKey: fileName });
-  } catch (error) {
-    console.error('S3 Upload Error:', error);
-    res.status(500).json({ error: 'Failed to upload proof' });
-  }
-};
 
 exports.deleteProduceImage = async (req, res) => {
   try {
