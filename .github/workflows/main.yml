@@ -2,7 +2,7 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [dev]
   workflow_dispatch:
 
 jobs:
@@ -121,6 +121,7 @@ jobs:
         with:
           repository: agriconnect-platform/agriconnect-helm
           token: ${{ secrets.GH_PAT }}
+          ref: dev
           path: helm-repo
 
       - name: Update image tags
@@ -136,7 +137,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add helm/agriconnect/values.yaml
           git diff --staged --quiet || git commit -m "ci: update image tags to ${SHA} [skip ci]"
-          git push
+          git push origin dev
 
   # ── Deploy frontend — only when frontend files changed ────────────────────
   cd-frontend:
