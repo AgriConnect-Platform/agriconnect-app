@@ -15,7 +15,7 @@ jobs:
     name: Send failure email
     runs-on: ubuntu-latest
     steps:
-      - name: Send Gmail notification
+      - name: Send failure notification
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -23,15 +23,34 @@ jobs:
           secure: false
           username: asadchamp109@gmail.com
           password: ${{ secrets.TF_VAR_SMTP_PASS }}
-          subject: "AgriConnect — ${{ inputs.scan_name }} scan FAILED"
+          subject: "❌ AgriConnect CI — ${{ inputs.scan_name }} FAILED"
           to: asadchamp109@gmail.com
           from: AgriConnect CI <asadchamp109@gmail.com>
           body: |
-            Security scan failure detected in AgriConnect pipeline.
+            ============================================
+              AgriConnect Platform — CI Security Alert
+            ============================================
 
-            Scan    : ${{ inputs.scan_name }}
+            STATUS  : ❌ FAILED
+            SCAN    : ${{ inputs.scan_name }}
+
+            --------------------------------------------
+            PIPELINE DETAILS
+            --------------------------------------------
             Branch  : ${{ github.ref_name }}
             Commit  : ${{ github.sha }}
-            Actor   : ${{ github.actor }}
+            Trigger : ${{ github.actor }}
+            Run #   : ${{ github.run_number }}
 
-            View run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            --------------------------------------------
+            ACTION REQUIRED
+            --------------------------------------------
+            Review the scan results and fix any issues
+            before merging to production.
+
+            View full run:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            ============================================
+            AgriConnect DevSecOps Pipeline
+            ============================================

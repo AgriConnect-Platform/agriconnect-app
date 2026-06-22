@@ -42,39 +42,33 @@ jobs:
     uses: ./.github/workflows/ci-notification.yml
     secrets: inherit
 
-  # ── SAST — SonarCloud (informational, does not block deployment) ─────────
+  # ── SAST — SonarCloud (runs in parallel, never blocks deployment) ──────────
   sast:
     name: SAST - SonarCloud
     runs-on: ubuntu-latest
-    continue-on-error: true
+    outputs:
+      result: ${{ steps.sonar.outcome }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: SonarCloud Scan
+        id: sonar
         uses: SonarSource/sonarcloud-github-action@v3
+        continue-on-error: true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >-
+            -Dsonar.qualitygate.wait=false
 
-  # ── Notify on SonarCloud failure ──────────────────────────────────────────
-  notify-sast:
-    name: Notify - SonarCloud Failed
-    needs: sast
-    if: failure() && needs.sast.result == 'failure'
-    uses: ./.github/workflows/notify-failure.yml
-    secrets: inherit
-    with:
-      scan_name: "SonarCloud SAST"
-
-  # ── Snyk — runs after SonarCloud (informational, does not block deployment)
+  # ── Snyk — runs in parallel with SonarCloud ───────────────────────────────
   snyk:
     name: Snyk - Dependency Scan
-    needs: sast
-    if: always()
     runs-on: ubuntu-latest
     outputs:
-      failed: ${{ steps.snyk-scan.outcome == 'failure' && 'true' || 'false' }}
+      result: ${{ steps.snyk-scan.outcome }}
     steps:
       - uses: actions/checkout@v4
 
@@ -88,8 +82,7 @@ jobs:
       - name: Install dependencies
         run: |
           for dir in shared services/auth-service services/marketplace-service services/order-service services/media-service services/notification-service; do
-            echo "Installing deps in $dir..."
-            (cd $dir && npm install --omit=dev)
+            (cd $dir && npm install --omit=dev 2>/dev/null)
           done
 
       - name: Run Snyk scan
@@ -99,15 +92,15 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         continue-on-error: true
 
-  # ── Notify on Snyk failure ────────────────────────────────────────────────
-  notify-snyk:
-    name: Notify - Snyk Vulnerabilities Found
-    needs: snyk
-    if: needs.snyk.outputs.failed == 'true'
+  # ── Notify on any security scan failure ───────────────────────────────────
+  notify-security:
+    name: Notify - Security Scan Failed
+    needs: [sast, snyk]
+    if: always() && (needs.sast.outputs.result == 'failure' || needs.snyk.outputs.result == 'failure')
     uses: ./.github/workflows/notify-failure.yml
     secrets: inherit
     with:
-      scan_name: "Snyk Dependency Scan"
+      scan_name: "${{ needs.sast.outputs.result == 'failure' && needs.snyk.outputs.result == 'failure' && 'SonarCloud SAST + Snyk' || needs.sast.outputs.result == 'failure' && 'SonarCloud SAST' || 'Snyk Dependency Scan' }}"
 
   # ── Update image tags in agriconnect-helm repo → triggers ArgoCD sync ────
   update-helm-values:
