@@ -21,24 +21,52 @@ jobs:
             frontend:
               - 'frontend/**'
 
+  # ── Lint — ESLint code quality gate ─────────────────────────────────────
+  lint:
+    name: Lint - ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Lint all services
+        run: |
+          npx eslint@8 \
+            services/auth-service \
+            services/marketplace-service \
+            services/order-service \
+            services/media-service \
+            services/notification-service \
+            shared \
+            --ext .js \
+            --max-warnings 0
+
   # ── Build all 5 services in PARALLEL ─────────────────────────────────────
   ci-auth:
+    needs: lint
     uses: ./.github/workflows/ci-auth.yml
     secrets: inherit
 
   ci-marketplace:
+    needs: lint
     uses: ./.github/workflows/ci-marketplace.yml
     secrets: inherit
 
   ci-order:
+    needs: lint
     uses: ./.github/workflows/ci-order.yml
     secrets: inherit
 
   ci-media:
+    needs: lint
     uses: ./.github/workflows/ci-media.yml
     secrets: inherit
 
   ci-notification:
+    needs: lint
     uses: ./.github/workflows/ci-notification.yml
     secrets: inherit
 
