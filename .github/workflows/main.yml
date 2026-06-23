@@ -21,9 +21,11 @@ jobs:
             frontend:
               - 'frontend/**'
 
-  # ── Lint — ESLint code quality gate ─────────────────────────────────────
+  # ── Lint — ESLint code quality gate (runs after security scans complete) ──
   lint:
     name: Lint - ESLint
+    needs: [sast, snyk]
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
