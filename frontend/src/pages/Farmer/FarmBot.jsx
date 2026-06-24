@@ -163,7 +163,10 @@ export default function FarmBot({ user }) {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) return;
+    if (file.size > 3 * 1024 * 1024) {
+      alert('Image must be under 3MB. Please compress or resize the photo and try again.');
+      return;
+    }
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     e.target.value = '';
