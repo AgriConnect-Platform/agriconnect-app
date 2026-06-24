@@ -160,6 +160,7 @@ export default function AIChatBot({
 
   // Functional
   onSend,
+  currentImage,
   hasImageUpload,
   renderImageUpload,
   renderMessageMeta,
@@ -178,11 +179,15 @@ export default function AIChatBot({
 
   const handleSend = async (override) => {
     const msg = typeof override === 'string' ? override.trim() : input.trim();
-    if (!msg || loading) return;
+    const hasImage = Boolean(currentImage);
+    if ((!msg && !hasImage) || loading) return;
     setInput('');
     setShowQuick(false);
 
-    const userEntry = { role: 'user', text: msg, ts: new Date() };
+    // Snapshot the image URL NOW (before onSend clears it) so it appears in the chat bubble
+    const imageSnapshot = currentImage || null;
+    const displayText = msg || 'Please analyze this image';
+    const userEntry = { role: 'user', text: displayText, image: imageSnapshot, ts: new Date() };
     setMessages(prev => [...prev, userEntry]);
     setLoading(true);
 
@@ -207,27 +212,29 @@ export default function AIChatBot({
   return (
     <Box sx={{
       display: 'flex', flexDirection: 'column',
-      height: 'calc(100vh - 180px)', minHeight: 600, maxHeight: 960,
+      height: { xs: 'calc(100vh - 140px)', md: 'calc(100vh - 180px)' },
+      minHeight: { xs: 480, md: 600 },
+      maxHeight: { xs: 'none', md: 960 },
       background: '#F6FCF8',
-      borderRadius: '28px',
+      borderRadius: { xs: '16px', md: '28px' },
       border: `1px solid ${C.border}`,
       boxShadow: '0 4px 48px rgba(27,127,58,0.08)',
       overflow: 'hidden',
     }}>
 
-      {/* ── Header (90 px) ─────────────────────────────────────────────────── */}
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <Box sx={{
-        height: 90, flexShrink: 0,
+        height: { xs: 70, md: 90 }, flexShrink: 0,
         background: 'white',
         borderBottom: `1px solid ${C.border}`,
-        px: { xs: 2.5, md: 4 },
+        px: { xs: 2, md: 4 },
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <Box display="flex" alignItems="center" gap={2}>
           {/* Avatar with online dot */}
           <Box sx={{ position: 'relative' }}>
             <Avatar sx={{
-              width: 52, height: 52,
+              width: { xs: 40, md: 52 }, height: { xs: 40, md: 52 },
               background: `linear-gradient(135deg, ${C.primary}, ${C.dark})`,
               boxShadow: `0 4px 16px rgba(27,127,58,0.28)`,
             }}>
@@ -366,6 +373,14 @@ export default function AIChatBot({
                         ? '0 4px 20px rgba(27,127,58,0.25)'
                         : '0 2px 14px rgba(27,127,58,0.07)',
                     }}>
+                      {msg.image && (
+                        <Box sx={{
+                          mb: 1, borderRadius: '10px', overflow: 'hidden',
+                          maxWidth: 200, border: '2px solid rgba(255,255,255,0.35)',
+                        }}>
+                          <img src={msg.image} alt="crop" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                        </Box>
+                      )}
                       <ChatText text={msg.text} isUser={msg.role === 'user'} />
                       {msg.role === 'bot' && renderMessageMeta?.(msg)}
                       <Typography sx={{
@@ -479,13 +494,13 @@ export default function AIChatBot({
               <span>
                 <IconButton
                   onClick={() => handleSend()}
-                  disabled={!input.trim() || loading}
+                  disabled={(!input.trim() && !currentImage) || loading}
                   sx={{
                     width: 56, height: 56, borderRadius: '18px', flexShrink: 0,
-                    background: input.trim() && !loading
+                    background: (input.trim() || currentImage) && !loading
                       ? `linear-gradient(135deg, ${C.primary}, ${C.dark})`
                       : C.light,
-                    color: input.trim() && !loading ? 'white' : C.border,
+                    color: (input.trim() || currentImage) && !loading ? 'white' : C.border,
                     transition: 'all 0.25s',
                     '&:hover': {
                       background: `linear-gradient(135deg, #25a04a, ${C.primary})`,

@@ -180,7 +180,7 @@ export default function FarmBot({ user }) {
         r.onload  = () => res(r.result.split(',')[1]);
         r.onerror = rej;
       });
-      clearImage();
+      // clearImage() is called AFTER the API response so the preview stays visible during loading
     }
 
     const { data } = await axios.post(FARMBOT_API_URL, {
@@ -194,6 +194,9 @@ export default function FarmBot({ user }) {
         'Content-Type': 'application/json',
       },
     });
+
+    // Clear the image preview now that we have the response
+    clearImage();
 
     const responseText = data.response || data.error || 'No response received.';
 
@@ -266,6 +269,7 @@ export default function FarmBot({ user }) {
         Illustration={FarmBotIllustration}
 
         onSend={onSend}
+        currentImage={imagePreview}
         renderImageUpload={renderImagePreviewBar}
         renderMessageMeta={renderMessageMeta}
 

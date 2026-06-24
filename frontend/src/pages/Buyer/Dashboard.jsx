@@ -359,6 +359,7 @@ const BuyerDashboard = ({ user }) => {
         borderRadius: '14px 14px 0 0', px: 1,
       }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="primary" indicatorColor="primary"
+          variant="scrollable" scrollButtons="auto"
           sx={{ '& .MuiTab-root': { fontWeight: 700, minHeight: 52, fontSize: '0.875rem' } }}>
           <Tab icon={<StoreIcon fontSize="small" />} label="Marketplace" iconPosition="start" />
           <Tab

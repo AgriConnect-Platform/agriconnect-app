@@ -392,6 +392,7 @@ const FarmerDashboard = ({ user }) => {
         borderRadius: '14px 14px 0 0', px: 1,
       }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="primary" indicatorColor="primary"
+          variant="scrollable" scrollButtons="auto"
           sx={{ '& .MuiTab-root': { fontWeight: 700, minHeight: 52, fontSize: '0.875rem' } }}>
           <Tab label={`My Listings (${listings.length})`}          icon={<InventoryIcon fontSize="small" />}  iconPosition="start" />
           <Tab label={`Orders & Sales (${sales.length})`}          icon={<ShoppingBagIcon fontSize="small" />} iconPosition="start" />
