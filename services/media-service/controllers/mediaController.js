@@ -18,7 +18,8 @@ async function initS3() {
   const clientConfig = { region: s3Region };
   try {
     const awsConfig = await getSecret('agriconnect/dev/aws');
-    if (awsConfig.access_key && awsConfig.access_key !== 'USE_IAM_ROLE') {
+    const isRealKey = awsConfig.access_key && awsConfig.access_key.startsWith('AKIA');
+    if (isRealKey) {
       clientConfig.credentials = {
         accessKeyId: awsConfig.access_key,
         secretAccessKey: awsConfig.secret_key
