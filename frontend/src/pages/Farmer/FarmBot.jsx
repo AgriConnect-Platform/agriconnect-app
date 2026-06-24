@@ -169,6 +169,7 @@ export default function FarmBot({ user }) {
     }
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
+    historyRef.current = []; // clear history on new image — prevents context overflow
     e.target.value = '';
   };
 
